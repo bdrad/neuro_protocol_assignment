@@ -1,6 +1,7 @@
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.base import TransformerMixin
@@ -27,7 +28,8 @@ def get_log_reg_model(data, labels):
         ('preproc', Preprocessor()),
         ('vect', CountVectorizer()),
         ('tfidf', TfidfTransformer()),
-        ('clf', LogisticRegression())
+        ('clf', LogisticRegression(penalty='l1'))
     ])
+    scores = cross_val_score(text_clf, data, labels, cv=10)
     text_clf.fit(data, labels)
-    return text_clf
+    return text_clf, scores

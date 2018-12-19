@@ -1,19 +1,23 @@
 from random import shuffle
 from csv import DictReader, DictWriter
 import argparse
+import numpy as np
 
 from models import get_log_reg_model
 
 CONCAT_ORDER = True
 
+def join_img_order(report, img_order):
+    if CONCAT_ORDER:
+        return report + " IMGORD_" + img_order.replace(" ", "_")
+    else:
+        return report
+
 # Returns list of tuples of form (Report Text, Image Order, Protocol Category, Protocol Specific)
 def read_csv(in_path):
     csv_reader = DictReader(open(in_path, 'r'))
     valid_entries = filter(lambda entry: entry['PROTOCOL CATEGORY'] != '' and entry['PROTOCOL CATEGORY'] != 'NA', csv_reader)
-    if CONCAT_ORDER:
-        return [(e['Final Text'] + " " + e['Image Order'], e['Image Order'], e['PROTOCOL CATEGORY'], e['PROTCOL SPECIFIC']) for e in valid_entries]
-    else:
-        return [(e['Final Text'], e['Image Order'], e['PROTOCOL CATEGORY'], e['PROTCOL SPECIFIC']) for e in valid_entries]
+    return [(join_img_order(e['Final Text'], e['Image Order']), e['Image Order'], e['PROTOCOL CATEGORY'], e['PROTCOL SPECIFIC']) for e in valid_entries]
 
 def main():
     parser = argparse.ArgumentParser()
@@ -37,12 +41,17 @@ def main():
     test_reports, _, _, test_labels = zip(*test_data)
 
     # Try predicting general label
-    logreg_model = get_log_reg_model(train_reports, train_labels)
+    logreg_model, _ = get_log_reg_model(train_reports, train_labels)
+    print("Score on validation set")
     print(logreg_model.score(test_reports, test_labels))
 
     # Train a model on all data
     reports, _, _, labels = zip(*data)
-    logreg_model = get_log_reg_model(reports, labels)
+    logreg_model, cross_val_score = get_log_reg_model(reports, labels)
+    print("Cross Validation Scores")
+    print(cross_val_score)
+    print(np.mean(cross_val_score))
+
 
     # Replace entries
     csv_reader = DictReader(open(args.input_path, 'r'))
